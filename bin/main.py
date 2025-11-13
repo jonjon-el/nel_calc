@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import csv
@@ -207,7 +208,11 @@ def analyze_preliminary(filenames, config):
     # .csv
     i = 0
     for i in range(len(measurement_list_tries)):
-        output_filename = f"{output_preffix}_{filenames[i]}.csv"
+        filePath = filenames[i]
+        dirs, fileName = os.path.split(filePath)
+        baseName, extension = os.path.splitext(fileName)
+        output_extension = configJSON["files"]["output_preliminary"]["extension"]
+        output_filename = f"{output_preffix}_{baseName}.{output_extension}"
         
         with open(output_filename, "w", encoding="utf-8", newline='') as csvFile:
             csvWriter = csv.DictWriter(csvFile, fieldnames=output_header)

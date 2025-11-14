@@ -2,5 +2,5 @@
 .vscode/
 tests/
 __pycache__/
-.csv
-.json
+*.csv
+*.json

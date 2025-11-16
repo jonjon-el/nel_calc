@@ -112,11 +112,18 @@ def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, c
 
     click.echo("Sample images created.")
     sys.exit(0)
-    
+
+#analyze-preliminary command    
 @click.command()
-@click.argument("filenames", nargs=-1, type=click.Path(exists=True, file_okay=True), required=True)
+#@click.argument("filenames", nargs=-1, type=click.Path(exists=True, file_okay=True), required=True)
+@click.option("--input-dir", type=click.Path(exists=True, dir_okay=True), default=".", help="Path of input file directory.")
+@click.option("--output-dir", type=click.Path(exists=True, dir_okay=True), default=".", help="Path of output file directory.")
+@click.option("--input-preffix", type=click.STRING, default="preliminary_", help="Input fileName preffix.")
+@click.option("--output-preffix", type=click.STRING, default="output_", help="Output fileName preffix.")
+@click.option("--filetype", type=click.STRING, default="csv", help="FileType of the input and output files.")
+@click.option("--summary", type=click.Path(exists=False, file_okay=True), default="summary.json", help="FileName of summary file.")
 @click.option("--config", type=click.Path(exists=True, file_okay=True), default=nel_config.filenames["config"], help="Config filename.")
-def analyze_preliminary(filenames, config):
+def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_preffix, filetype, summary):
     """Analyze calibration preliminary data about measurements."""
 
     # Load the config file.
@@ -132,11 +139,23 @@ def analyze_preliminary(filenames, config):
     old_output_units = {key: configJSON["quantities"][key]["unit"] for key in output_header}
 
     # Filenames for the output files.
-    summary = f"{configJSON["files"]["summary"]["preffix"]}.{configJSON["files"]["summary"]["extension"]}"
-    output_preffix = f"{configJSON["files"]["output_preliminary"]["preffix"]}"
+    #summary = f"{configJSON["files"]["summary"]["preffix"]}.{configJSON["files"]["summary"]["extension"]}"
+    #output_preffix = f"{configJSON["files"]["output_preliminary"]["preffix"]}"
 
     #limits
     max_PTP = configJSON["limits"]["PTP"]["max"]
+
+    # Getting the input filenames.
+    input_suffix = f".{filetype}"
+    filenames = list()
+    for file in pathlib.Path(input_dir).iterdir():
+        if file.is_file():
+            if file.name.startswith(input_preffix) and file.suffix == input_suffix:
+                filenames.append(str(file.resolve()))
+    if len(filenames) == 0:
+        print("Cannot find input files.")
+        return
+        #raise FileNotFoundError
 
     # from files to rawMeasurement_list_tries
     # Read the files and convert them to rawMeasurement_list_tries
@@ -209,12 +228,16 @@ def analyze_preliminary(filenames, config):
     i = 0
     for i in range(len(measurement_list_tries)):
         filePath = filenames[i]
-        dirs, fileName = os.path.split(filePath)
-        baseName, extension = os.path.splitext(fileName)
-        output_extension = configJSON["files"]["output_preliminary"]["extension"]
-        output_filename = f"{output_preffix}_{baseName}.{output_extension}"
+        dirs = pathlib.Path(filePath).parent
+        stem = pathlib.Path(filePath).stem
+        suffix = pathlib.Path(filePath).suffix
+        #dirs, fileName = os.path.split(filePath)
+        #baseName, extension = os.path.splitext(fileName)
+        #output_extension = configJSON["files"]["output_preliminary"]["extension"]
+        output_filename = f"{output_preffix}{stem}{suffix}"
+        output_filePath = pathlib.Path(output_dir) / output_filename
         
-        with open(output_filename, "w", encoding="utf-8", newline='') as csvFile:
+        with open(output_filePath, "w", encoding="utf-8", newline='') as csvFile:
             csvWriter = csv.DictWriter(csvFile, fieldnames=output_header)
             csvWriter.writeheader()
             csvWriter.writerow(old_output_units)
@@ -229,7 +252,8 @@ def analyze_preliminary(filenames, config):
     output_quantities["m_corrected_average"] = m_corrected_average
     output_quantities["m_corrected_stdDev"] = m_corrected_stdDev
     output_quantities["m_corrected_expectedValue"] = m_corrected_expectedValue
-    with open(summary, "w", encoding="utf-8") as summaryFile:
+    summaryPath = pathlib.Path(output_dir) / summary
+    with open(summaryPath, "w", encoding="utf-8") as summaryFile:
         json.dump(output_quantities, summaryFile, indent=4)
         print(f"Output file {summary} created.")
 

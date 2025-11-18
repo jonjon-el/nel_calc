@@ -119,11 +119,11 @@ def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, c
 def create_calibration(filename):
     """Create a calibration file."""
     # Check if the file already exists.
-    if pathlib.Path(filename).exists():
-        raise click.BadParameter("File already exists. Please choose a different name or delete the existing file.")
+    # if pathlib.Path(filename).exists():
+    #    raise click.BadParameter("File already exists. Please choose a different name or delete the existing file.")
 
     with open(filename, "w", encoding="utf-8") as calibrationFile:
-        json.dump(nel_aux.calibration_data, calibrationFile, indent=4)
+        json.dump(nel_aux.calibration_data, calibrationFile, indent=4, ensure_ascii=False)
         click.echo(f"Calibration file {filename} created.")
     
     sys.exit(0)
@@ -272,6 +272,9 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
         json.dump(output_quantities, summaryFile, indent=4)
         print(f"Output file {summary} created.")
 
+    click.echo("Preliminary analysis done.")
+    sys.exit(0)
+
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 @click.option("--protocol", type=click.STRING, callback=validate_config_path_exclusive_option, help="Protocol used for calculations.")
@@ -322,6 +325,7 @@ def analyze_image_planar(filename, protocol, output, config):
     field_analysis.publish_pdf(filename=output)
     
     click.echo(f"2D images analyzed.")
+    sys.exit(0)
 
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
@@ -343,15 +347,15 @@ def generate_calibration_report(filename, output, config):
         clinical_pdd_zref=inputJSON["clinical_pdd_zref"],
         energy=inputJSON["energy"],
         fff=inputJSON["fff"],
-        #institution=inputJSON["institution"],
+        institution=inputJSON["institution"],
         k_elec=inputJSON["k_elec"],
         m_opposite=inputJSON["m_opposite"],
         m_reference=inputJSON["m_reference"],
         m_reduced=inputJSON["m_reduced"],
-        #measurement_date=inputJSON["measurement_date"],
+        measurement_date=inputJSON["measurement_date"],
         mu=inputJSON["mu"],
         n_dw=inputJSON["n_dw"],
-        #physicist=inputJSON["physicist"],
+        physicist=inputJSON["physicist"],
         press=inputJSON["press"],
         setup=inputJSON["setup"],
         temp=inputJSON["temp"],
@@ -397,6 +401,7 @@ def generate_graph(csv_file, output, config):
     # Save the graph
     plt.savefig(output)
     click.echo(f"Graph saved as {output}")
+    sys.exit(0)
 
 cli.add_command(create_config)
 cli.add_command(create_image_planar)

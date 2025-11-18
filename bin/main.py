@@ -113,6 +113,21 @@ def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, c
     click.echo("Sample images created.")
     sys.exit(0)
 
+#create calibration command
+@click.command()
+@click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True, default="calibration.json")
+def create_calibration(filename):
+    """Create a calibration file."""
+    # Check if the file already exists.
+    if pathlib.Path(filename).exists():
+        raise click.BadParameter("File already exists. Please choose a different name or delete the existing file.")
+
+    with open(filename, "w", encoding="utf-8") as calibrationFile:
+        json.dump(nel_aux.calibration_data, calibrationFile, indent=4)
+        click.echo(f"Calibration file {filename} created.")
+    
+    sys.exit(0)
+
 #analyze-preliminary command    
 @click.command()
 #@click.argument("filenames", nargs=-1, type=click.Path(exists=True, file_okay=True), required=True)
@@ -385,6 +400,7 @@ def generate_graph(csv_file, output, config):
 
 cli.add_command(create_config)
 cli.add_command(create_image_planar)
+cli.add_command(create_calibration)
 cli.add_command(analyze_preliminary)
 cli.add_command(analyze_image_planar)
 cli.add_command(generate_calibration_report)

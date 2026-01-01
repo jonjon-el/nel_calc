@@ -11,9 +11,9 @@ import click
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import nel_config
-import nel_aux
-import customSim
+import nel_calc.nel_config
+import nel_calc.nel_aux
+import nel_calc.customSim
 
 def validate_config_path_exclusive_option(ctx, param, value):
     """Validate that config_path is not used with other options."""
@@ -44,7 +44,7 @@ def validate_mutually_exclusive_options(ctx, param, value):
     return value
 
 program_folder = pathlib.Path(__file__).parent.parent.resolve()
-samples_folder = program_folder / nel_config.foldernames["samples"]
+samples_folder = program_folder / nel_calc.nel_config.foldernames["samples"]
 
 @click.group()
 @click.version_option("0.2.0", prog_name="nel_calc")
@@ -61,7 +61,7 @@ def create_config(filename):
     if pathlib.Path(filename).exists():
         raise click.BadParameter("File already exists. Please choose a different name or delete the existing file.")
     with open(filename, "w", encoding="utf-8") as configFile:
-        json.dump(nel_config.default_config, configFile, indent=4)
+        json.dump(nel_calc.nel_config.default_config, configFile, indent=4)
         click.echo(f"Config file {filename} created.")
     
     sys.exit(0)
@@ -102,7 +102,7 @@ def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, c
     
     #Load the appropiated epid class.
     if epid == "iViewGT":
-        iViewGT0 = customSim.iViewGTImage()
+        iViewGT0 = nel_calc.customSim.iViewGTImage()
     else:
         raise ValueError(f"Unknown EPID name for class instance: {epid}.")
     
@@ -123,7 +123,7 @@ def create_calibration(filename):
     #    raise click.BadParameter("File already exists. Please choose a different name or delete the existing file.")
 
     with open(filename, "w", encoding="utf-8") as calibrationFile:
-        json.dump(nel_aux.calibration_data, calibrationFile, indent=4, ensure_ascii=False)
+        json.dump(nel_calc.nel_aux.calibration_data, calibrationFile, indent=4, ensure_ascii=False)
         click.echo(f"Calibration file {filename} created.")
     
     sys.exit(0)
@@ -137,7 +137,7 @@ def create_calibration(filename):
 @click.option("--output-preffix", type=click.STRING, default="output_", help="Output fileName preffix.")
 @click.option("--filetype", type=click.STRING, default="csv", help="FileType of the input and output files.")
 @click.option("--summary", type=click.Path(exists=False, file_okay=True), default="summary.json", help="FileName of summary file.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), default=nel_config.filenames["config"], help="Config filename.")
+@click.option("--config", type=click.Path(exists=True, file_okay=True), default=nel_calc.nel_config.filenames["config"], help="Config filename.")
 def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_preffix, filetype, summary):
     """Analyze calibration preliminary data about measurements."""
 
@@ -146,7 +146,7 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
         configJSON = json.load(configFile)
 
     # Base types for the quantities.
-    default_baseTypes = nel_aux.GetBaseTypes(configJSON["quantities"])
+    default_baseTypes = nel_calc.nel_aux.GetBaseTypes(configJSON["quantities"])
 
     #Obtaining the units that will be used in the output files.
     new_input_units = {key: configJSON["quantities"][key]["unit"] for key in configJSON["files"]["input_preliminary"]["header"]}
@@ -182,7 +182,7 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
             old_input_units = next(csvDictReader) # Getting the units in second line
             rawMeasurement_list = list()
             for row in csvDictReader: # Getting the values
-                rawMeasurement = nel_aux.Row2Measurement(row=row, header=input_header, baseTypes=default_baseTypes)
+                rawMeasurement = nel_calc.nel_aux.Row2Measurement(row=row, header=input_header, baseTypes=default_baseTypes)
                 rawMeasurement_list.append(rawMeasurement.copy())
         rawMeasurement_list_tries.append(rawMeasurement_list.copy())
 
@@ -198,7 +198,7 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
     for rawMeasurement_list in rawMeasurement_list_tries:
         measurement_list = list()
         for rawMeasurement in rawMeasurement_list:
-            measurement = nel_aux.ConvertMeasurement(rawMeasurement=rawMeasurement, oldUnits=old_input_units, newUnits=new_input_units) #Conversion of units
+            measurement = nel_calc.nel_aux.ConvertMeasurement(rawMeasurement=rawMeasurement, oldUnits=old_input_units, newUnits=new_input_units) #Conversion of units
             measurement["k_TP"] = pylinac.calibration.trs398.k_tp(temp = measurement["T"], press = measurement["P"])
             measurement["m_corrected"] = pylinac.calibration.trs398.m_corrected(m_reference=measurement["m"],
                                                             k_tp=measurement["k_TP"],
@@ -218,20 +218,20 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
         m_corrected_list = [measurement["m_corrected"] for measurement in measurement_list]
 
         # Calculate the average of m_corrected
-        m_corrected_average_item = nel_aux.FindAverage(m_corrected_list)
+        m_corrected_average_item = nel_calc.nel_aux.FindAverage(m_corrected_list)
         m_corrected_averageList.append(m_corrected_average_item)
 
         # Calculate the standard deviation of m_corrected
-        m_corrected_stdDev_item = nel_aux.FindStdDev(m_corrected_list)
+        m_corrected_stdDev_item = nel_calc.nel_aux.FindStdDev(m_corrected_list)
         m_corrected_stdDevList.append(m_corrected_stdDev_item)
 
         # Calculate the expected value of m_corrected
-        m_corrected_expectedValue_item = nel_aux.FindExpectedValue(m_corrected_list)
+        m_corrected_expectedValue_item = nel_calc.nel_aux.FindExpectedValue(m_corrected_list)
         m_corrected_expectedValueList.append(m_corrected_expectedValue_item)
 
-    m_corrected_average = nel_aux.FindAverage(m_corrected_averageList)
-    m_corrected_stdDev = nel_aux.FindAverage(m_corrected_stdDevList)
-    m_corrected_expectedValue = nel_aux.FindAverage(m_corrected_expectedValueList)
+    m_corrected_average = nel_calc.nel_aux.FindAverage(m_corrected_averageList)
+    m_corrected_stdDev = nel_calc.nel_aux.FindAverage(m_corrected_stdDevList)
+    m_corrected_expectedValue = nel_calc.nel_aux.FindAverage(m_corrected_expectedValueList)
     
     print("General statistical quantities (Measurements 1, 2, 3):")
     print(f"Average: {m_corrected_average: .3f}")

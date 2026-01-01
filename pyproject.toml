@@ -1,0 +1,24 @@
+[build-system]
+requires = ["flit_core >=3.11,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "nel_calc"
+authors = [{name = "Nelson Sandoval Puente", email = "nelsonsandovalpuente@gmail.com"}]
+license = "MIT"
+license-files = ["LICENSE"]
+dynamic = ["version", "description"]
+requires-python = ">=3.8"
+dependencies = [
+    "click >=8.0",
+    "pandas",
+    "pylinac"
+    ]
+
+[project.urls]
+Homepage = "https://github.com/jonjon-el/nel_calc"
+Source = "https://github.com/jonjon-el/nel_calc"
+Issues = "https://github.com/jonjon-el/nel_calc/issues"
+
+[project.scripts]
+nel_calc = "nel_calc.__main__:main"

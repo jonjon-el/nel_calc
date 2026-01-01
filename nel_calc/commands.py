@@ -54,7 +54,7 @@ def cli():
 
 #command to create a config file
 @click.command()
-@click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), default="config.json", required=True)
+@click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 def create_config(filename):
     """Create a config file."""    
     # Check if the file already exists.
@@ -115,7 +115,7 @@ def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, c
 
 #create calibration command
 @click.command()
-@click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True, default="calibration.json")
+@click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 def create_calibration(filename):
     """Create a calibration file."""
     # Check if the file already exists.
@@ -131,13 +131,13 @@ def create_calibration(filename):
 #analyze-preliminary command    
 @click.command()
 #@click.argument("filenames", nargs=-1, type=click.Path(exists=True, file_okay=True), required=True)
-@click.option("--input-dir", type=click.Path(exists=True, dir_okay=True), default=".", help="Path of input file directory.")
-@click.option("--output-dir", type=click.Path(exists=True, dir_okay=True), default=".", help="Path of output file directory.")
-@click.option("--input-preffix", type=click.STRING, default="preliminary_", help="Input fileName preffix.")
-@click.option("--output-preffix", type=click.STRING, default="output_", help="Output fileName preffix.")
-@click.option("--filetype", type=click.STRING, default="csv", help="FileType of the input and output files.")
-@click.option("--summary", type=click.Path(exists=False, file_okay=True), default="summary.json", help="FileName of summary file.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), default=nel_calc.nel_config.filenames["config"], help="Config filename.")
+@click.option("--input-dir", type=click.Path(exists=True, dir_okay=True), help="Path of input file directory.")
+@click.option("--output-dir", type=click.Path(exists=True, dir_okay=True), help="Path of output file directory.")
+@click.option("--input-preffix", type=click.STRING, help="Input fileName preffix.")
+@click.option("--output-preffix", type=click.STRING, help="Output fileName preffix.")
+@click.option("--filetype", type=click.STRING, help="FileType of the input and output files.")
+@click.option("--summary", type=click.Path(exists=False, file_okay=True), help="FileName of summary file.")
+@click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
 def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_preffix, filetype, summary):
     """Analyze calibration preliminary data about measurements."""
 
@@ -329,8 +329,8 @@ def analyze_image_planar(filename, protocol, output, config):
 
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
-@click.option("--output", type=click.Path(file_okay=True, dir_okay=False), default="n_dw.pdf", help="Output filename.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), default="config.json", help="Config filename.")
+@click.option("--output", type=click.Path(file_okay=True, dir_okay=False), help="Output filename.")
+@click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
 def generate_calibration_report(filename, output, config):
     """Generate report about calibration."""
 
@@ -376,8 +376,8 @@ def generate_calibration_report(filename, output, config):
 
 @click.command()
 @click.argument('csv_file', type=click.Path(exists=True))
-@click.option('--output', default='output.png', help='Filename to save the graph', required=True)
-@click.option('--config', type=click.Path(exists=True, file_okay=True), default='config.json', help='Config filename.', required=True)
+@click.option('--output', help='Filename to save the graph', required=True)
+@click.option('--config', type=click.Path(exists=True, file_okay=True), help='Config filename.', required=True)
 def generate_graph(csv_file, output, config):
     """Generates a graph from a given CSV file."""
     

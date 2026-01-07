@@ -1,4 +1,34 @@
 import pylinac.calibration.trs398
+import tomllib
+import click
+
+# Load a TOML file
+def load_toml_file(path):
+    with open(path, "rb") as f:
+        return tomllib.load(f)
+
+# Get a nested value in a dictionary
+def get_nested(dictObj, *keys, default=None):
+    for key in keys:
+        if isinstance(dictObj, dict):
+            dictObj = dictObj.get(key)
+        else:
+            return default
+    return dictObj if dictObj is not None else default
+
+# Validate option helper.
+def resolve_option(cli_value, config, key_path, *, required=False, prompt=False, prompt_text=None):
+    keys = key_path.split(".")
+    value = cli_value or get_nested(config, *keys)
+
+    if value is None:
+        if prompt:
+            return click.prompt(prompt_text or f"Enter value for '{key_path}'")
+        if required:
+            raise click.UsageError(f"Missing required option: --{keys[-1]} or '{key_path}' in config.")
+    return value
+
+
 
 # Example calibration data structure used in the calibration file.
 calibration_data = {

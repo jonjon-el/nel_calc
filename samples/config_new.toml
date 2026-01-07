@@ -1,0 +1,15 @@
+#nel_calc analyze-preliminary --input-dir samples --output-dir tests --input-preffix preliminary --output-preffix output-preliminary --filetype csv --summary summary.json --config tests\config.json
+#nel_calc analyze-preliminary --summary summary.json --config tests\config.json
+
+
+[analyze-preliminary]
+input-dir = "samples"
+output-dir = "tests"
+input-preffix = "preliminary"
+output-preffix = "output"
+filetype = "csv"
+summary = "summary.json"
+default-base-types = ""
+new-input-units = ""
+output-units = ""
+max-PTP = ""

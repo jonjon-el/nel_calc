@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import tomllib #TODO:fixing complex commands
 import csv
 import pathlib
 
@@ -138,8 +139,31 @@ def create_calibration(filename):
 @click.option("--filetype", type=click.STRING, help="FileType of the input and output files.")
 @click.option("--summary", type=click.Path(exists=False, file_okay=True), help="FileName of summary file.")
 @click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
-def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_preffix, filetype, summary):
+@click.option("--config-new", type=click.Path(exists=True, file_okay=True), help="Config filename.")
+def analyze_preliminary(config_new, config, input_dir, output_dir, input_preffix, output_preffix, filetype, summary):
     """Analyze calibration preliminary data about measurements."""
+
+    # Load the new config file
+    #if config_new:
+    #    with open(config_new, "rb") as configFileNew:
+    #        cfg = tomllib.load(configFileNew)
+    #else:
+    #    cfg = {}
+
+    cfg = nel_calc.nel_aux.load_toml_file(config_new) if config_new else {}
+
+    input_dir = nel_calc.nel_aux.resolve_option(input_dir, cfg, "analyze-preliminary.input-dir", required=True)
+    output_dir = nel_calc.nel_aux.resolve_option(output_dir, cfg, "analyze-preliminary.output-dir", required=True)
+    input_preffix = nel_calc.nel_aux.resolve_option(input_preffix, cfg, "analyze-preliminary.input-preffix", required=True)
+    output_preffix = nel_calc.nel_aux.resolve_option(output_preffix, cfg, "analyze-preliminary.output-preffix", required=True)
+    filetype = nel_calc.nel_aux.resolve_option(filetype, cfg, "analyze-preliminary.filetype", required=True)
+    summary = nel_calc.nel_aux.resolve_option(summary, cfg, "analyze-preliminary.summary", required=True)
+
+    # output_dir = output_dir or cfg["analyze-preliminary"]["output-dir"]
+    # input_preffix = input_preffix or cfg["analyze-preliminary"]["input-preffix"]
+    # output_preffix = output_preffix or cfg["analyze-preliminary"]["output-preffix"]
+    # filetype = filetype or cfg["analyze-preliminary"]["filetype"]
+    # summary = summary or cfg["analyze-preliminary"]["summary"]
 
     # Load the config file.
     with open(config, "r", encoding = "utf-8") as configFile:
@@ -161,11 +185,12 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
     max_PTP = configJSON["limits"]["PTP"]["max"]
 
     # Getting the input filenames.
-    input_suffix = f".{filetype}"
+    #input_suffix = f".{filetype}"
     filenames = list()
     for file in pathlib.Path(input_dir).iterdir():
         if file.is_file():
-            if file.name.startswith(input_preffix) and file.suffix == input_suffix:
+            #if file.name.startswith(input_preffix) and file.suffix == input_suffix:
+            if file.name.startswith(input_preffix) and file.suffix == filetype:
                 filenames.append(str(file.resolve()))
     if len(filenames) == 0:
         print("Cannot find input files.")
@@ -249,7 +274,8 @@ def analyze_preliminary(config, input_dir, output_dir, input_preffix, output_pre
         #dirs, fileName = os.path.split(filePath)
         #baseName, extension = os.path.splitext(fileName)
         #output_extension = configJSON["files"]["output_preliminary"]["extension"]
-        output_filename = f"{output_preffix}{stem}{suffix}"
+        #output_filename = f"{output_preffix}{stem}{suffix}"
+        output_filename = f"{output_preffix}{i}{suffix}"
         output_filePath = pathlib.Path(output_dir) / output_filename
         
         with open(output_filePath, "w", encoding="utf-8", newline='') as csvFile:

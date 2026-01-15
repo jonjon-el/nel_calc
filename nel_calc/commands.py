@@ -138,9 +138,14 @@ def create_calibration(filename):
 @click.option("--output-preffix", type=click.STRING, help="Output fileName preffix.")
 @click.option("--filetype", type=click.STRING, help="FileType of the input and output files.")
 @click.option("--summary", type=click.Path(exists=False, file_okay=True), help="FileName of summary file.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
+@click.option("--default-basetypes", type=click.Tuple([click.STRING, click.STRING, click.STRING, click.STRING, click.STRING, click.STRING]), help="Default basetypes of the values in the columns of csv files.")
+@click.option("--column-class", type=click.Tuple([click.STRING, click.STRING, click.STRING, click.STRING, click.STRING, click.STRING]), help="Class of the values in the columns of csv files.")
+@click.option("--new-input-units", type=click.Tuple([click.STRING, click.STRING, click.STRING, click.STRING, click.STRING, click.STRING]), help="Units of the values in the columns of csv input file.")
+@click.option("--old-output-units", type=click.Tuple([click.STRING, click.STRING, click.STRING, click.STRING, click.STRING, click.STRING]), help="Class of the values in the columns of csv output file.")
+@click.option("--max-PTP", type=click.FLOAT, help="Maximum limit for PTP.")
+# @click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
 @click.option("--config-new", type=click.Path(exists=True, file_okay=True), help="Config filename.")
-def analyze_preliminary(config_new, config, input_dir, output_dir, input_preffix, output_preffix, filetype, summary):
+def analyze_preliminary(config_new, input_dir, output_dir, input_preffix, output_preffix, filetype, summary, default_basetypes, column_class, new_input_units, old_output_units, max_ptp):
     """Analyze calibration preliminary data about measurements."""
 
     # Load the new config file
@@ -158,6 +163,11 @@ def analyze_preliminary(config_new, config, input_dir, output_dir, input_preffix
     output_preffix = nel_calc.nel_aux.resolve_option(output_preffix, cfg, "analyze-preliminary.output-preffix", required=True)
     filetype = nel_calc.nel_aux.resolve_option(filetype, cfg, "analyze-preliminary.filetype", required=True)
     summary = nel_calc.nel_aux.resolve_option(summary, cfg, "analyze-preliminary.summary", required=True)
+    default_basetypes = nel_calc.nel_aux.resolve_option(default_basetypes, cfg, "analyze-preliminary.default-basetypes", required=True)
+    column_class = nel_calc.nel_aux.resolve_option(column_class, cfg, "analyze-preliminary.column-class", required=True)
+    new_input_units = nel_calc.nel_aux.resolve_option(new_input_units, cfg, "analyze-preliminary.new-input-units", required=True)
+    old_output_units = nel_calc.nel_aux.resolve_option(new_input_units, cfg, "analyze-preliminary.new-output-units", required=True)
+    max_ptp = nel_calc.nel_aux.resolve_option(max_ptp, cfg, "analyze-preliminary.max-PTP", required=True)
 
     # output_dir = output_dir or cfg["analyze-preliminary"]["output-dir"]
     # input_preffix = input_preffix or cfg["analyze-preliminary"]["input-preffix"]
@@ -166,23 +176,28 @@ def analyze_preliminary(config_new, config, input_dir, output_dir, input_preffix
     # summary = summary or cfg["analyze-preliminary"]["summary"]
 
     # Load the config file.
-    with open(config, "r", encoding = "utf-8") as configFile:
-        configJSON = json.load(configFile)
+    # with open(config, "r", encoding = "utf-8") as configFile:
+    #     configJSON = json.load(configFile)
 
     # Base types for the quantities.
-    default_baseTypes = nel_calc.nel_aux.GetBaseTypes(configJSON["quantities"])
+    default_baseTypes = dict(zip(column_class, default_basetypes)) # For new config file.
 
     #Obtaining the units that will be used in the output files.
-    new_input_units = {key: configJSON["quantities"][key]["unit"] for key in configJSON["files"]["input_preliminary"]["header"]}
-    output_header = configJSON["files"]["output_preliminary"]["header"]
-    old_output_units = {key: configJSON["quantities"][key]["unit"] for key in output_header}
+    
+    # new_input_units = {key: configJSON["quantities"][key]["unit"] for key in configJSON["files"]["input_preliminary"]["header"]}
+    new_input_units = dict(zip(column_class, new_input_units)) # For new config file.
+
+    # output_header = configJSON["files"]["output_preliminary"]["header"] # Not needed with column-class parameter.
+
+    # old_output_units = {key: configJSON["quantities"][key]["unit"] for key in output_header}
+    old_output_units = dict(zip(column_class, old_output_units)) # For new config file.
 
     # Filenames for the output files.
     #summary = f"{configJSON["files"]["summary"]["preffix"]}.{configJSON["files"]["summary"]["extension"]}"
     #output_preffix = f"{configJSON["files"]["output_preliminary"]["preffix"]}"
 
     #limits
-    max_PTP = configJSON["limits"]["PTP"]["max"]
+    # max_PTP = configJSON["limits"]["PTP"]["max"] # For new config file.
 
     # Getting the input filenames.
     #input_suffix = f".{filetype}"
@@ -214,7 +229,7 @@ def analyze_preliminary(config_new, config, input_dir, output_dir, input_preffix
     # Changing bounds of k_tp to avoid BoundError
     # Value are the just as closest posible to default values
     # pylinac.calibration.trs398.MAX_PTP = 1.2
-    pylinac.calibration.trs398.MAX_PTP = max_PTP
+    pylinac.calibration.trs398.MAX_PTP = max_ptp
 
     # from rawMeasurement_list_tries to measurement_list_tries
     # Convert the units and calculate the corrected charge and the temperature-pressure correction factor
@@ -279,7 +294,7 @@ def analyze_preliminary(config_new, config, input_dir, output_dir, input_preffix
         output_filePath = pathlib.Path(output_dir) / output_filename
         
         with open(output_filePath, "w", encoding="utf-8", newline='') as csvFile:
-            csvWriter = csv.DictWriter(csvFile, fieldnames=output_header)
+            csvWriter = csv.DictWriter(csvFile, fieldnames=column_class)
             csvWriter.writeheader()
             csvWriter.writerow(old_output_units)
             for measurement in measurement_list:

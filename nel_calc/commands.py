@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import tomllib #TODO:fixing complex commands
+# import tomllib #TODO:fixing complex commands
 import csv
 import pathlib
 
@@ -44,8 +44,8 @@ def validate_mutually_exclusive_options(ctx, param, value):
             
     return value
 
-program_folder = pathlib.Path(__file__).parent.parent.resolve()
-samples_folder = program_folder / nel_calc.nel_config.foldernames["samples"]
+# program_folder: pathlib.Path = pathlib.Path(__file__).parent.parent.resolve() # Seems unnecessary during migration to config.toml
+# samples_folder: pathlib.Path = program_folder / nel_calc.nel_config.foldernames["samples"] # Seems unnecessary during migration to config.toml
 
 @click.group()
 @click.version_option("0.2.0", prog_name="nel_calc")
@@ -67,45 +67,54 @@ def create_config(filename):
     
     sys.exit(0)
 
-#command to create image for 2D profiling
+#command to create image for 2D profiling. OK
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 @click.option("--field-size-mm", type=click.Tuple([float, float]), callback=validate_config_path_exclusive_option, help="Field size in mm.")
-@click.option("--sigma_mm", type=float, callback=validate_config_path_exclusive_option, help="Sigma in mm for the Gaussian filter.")
+@click.option("--sigma-mm", type=float, callback=validate_config_path_exclusive_option, help="Sigma in mm for the Gaussian filter.")
 @click.option("--gantry-angle", type=float, callback=validate_config_path_exclusive_option, help="Gantry angle in degrees.")
 @click.option("--epid", type=str, callback=validate_config_path_exclusive_option, help="Name of the EPID that will be simulated.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), callback=validate_config_path_exclusive_option, help="Path to the config file.")
-def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, config):
+# @click.option("--config", type=click.Path(exists=True, file_okay=True), callback=validate_config_path_exclusive_option, help="Path to the config file.")
+@click.option("--config-new", type=click.Path(exists=True, file_okay=True), help="Config filename.")
+def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, config_new):
     """Create planar image for 2D profiling."""
 
+    cfg = nel_calc.nel_aux.load_toml_file(config_new) if config_new else {}
+
+    field_size_mm = nel_calc.nel_aux.resolve_option(field_size_mm, cfg, "create-image-planar.field-size-mm", required=True)
+    sigma_mm = nel_calc.nel_aux.resolve_option(sigma_mm, cfg, "create-image-planar.sigma-mm", required=True)
+    gantry_angle = nel_calc.nel_aux.resolve_option(gantry_angle, cfg, "create-image-planar.gantry-angle", required=True)
+    epid = nel_calc.nel_aux.resolve_option(epid, cfg, "create-image-planar.epid", required=True)
+
     # Load the config file.
-    if config:
-        with open(config, "r", encoding = "utf-8") as configFile:
-            configJSON = json.load(configFile)
+    # if config:
+        # with open(config, "r", encoding = "utf-8") as configFile:
+            # configJSON = json.load(configFile)
     
-        field_size_mm=configJSON["images"]["symmetry"]["FilteredFieldLayer"]["field_size_mm"]
-        sigma_mm=configJSON["images"]["symmetry"]["GaussianFilterLayer"]["sigma_mm"]
-        gantry_angle=configJSON["images"]["symmetry"]["generate_dicom"]["gantry_angle"]
-        for device in configJSON["devices"]:
-            if configJSON["devices"][device]["type"] == "epid":
-                deviceStatus = configJSON["devices"][device]["status"]
-                if "default" in deviceStatus:
-                    epid = configJSON["devices"][device]["name"]
-                    break
-                else:
-                    raise LookupError("No default EPID found in the config file.")
-            else:
-                raise KeyError("No EPID found in the config file.")
-    else:
+        # field_size_mm=configJSON["images"]["symmetry"]["FilteredFieldLayer"]["field_size_mm"]
+        # sigma_mm=configJSON["images"]["symmetry"]["GaussianFilterLayer"]["sigma_mm"]
+        # gantry_angle=configJSON["images"]["symmetry"]["generate_dicom"]["gantry_angle"]
+        # for device in configJSON["devices"]:
+        #     if configJSON["devices"][device]["type"] == "epid":
+        #         deviceStatus = configJSON["devices"][device]["status"]
+        #         if "default" in deviceStatus:
+        #             epid = configJSON["devices"][device]["name"]
+        #             break
+        #         else:
+        #             raise LookupError("No default EPID found in the config file.")
+        #     else:
+        #         raise KeyError("No EPID found in the config file.")
+    # else:
         #Check if all the parameters are provided.
-        if field_size_mm is None or sigma_mm is None or gantry_angle is None or epid is None:
-            raise click.BadParameter("All parameters are required.")
+        # if field_size_mm is None or sigma_mm is None or gantry_angle is None or epid is None:
+            # raise click.BadParameter("All parameters are required.")
     
     #Load the appropiated epid class.
     if epid == "iViewGT":
         iViewGT0 = nel_calc.customSim.iViewGTImage()
     else:
-        raise ValueError(f"Unknown EPID name for class instance: {epid}.")
+        raise click.exceptions.BadParameter(f"Unknown EPID name for class instance: {epid}.")
+        # raise ValueError(f"Unknown EPID name for class instance: {epid}.")
     
     iViewGT0.add_layer(pylinac.core.image_generator.layers.FilteredFieldLayer(field_size_mm=field_size_mm))
     iViewGT0.add_layer(pylinac.core.image_generator.layers.GaussianFilterLayer(sigma_mm=sigma_mm))
@@ -114,7 +123,7 @@ def create_image_planar(filename, field_size_mm, sigma_mm, gantry_angle, epid, c
     click.echo("Sample images created.")
     sys.exit(0)
 
-#create calibration command
+#create calibration command. OK
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 def create_calibration(filename):
@@ -129,7 +138,7 @@ def create_calibration(filename):
     
     sys.exit(0)
 
-#analyze-preliminary command    
+#analyze-preliminary command. OK
 @click.command()
 #@click.argument("filenames", nargs=-1, type=click.Path(exists=True, file_okay=True), required=True)
 @click.option("--input-dir", type=click.Path(exists=True, dir_okay=True), help="Path of input file directory.")
@@ -316,34 +325,41 @@ def analyze_preliminary(config_new, input_dir, output_dir, input_preffix, output
     click.echo("Preliminary analysis done.")
     sys.exit(0)
 
+# analyze-image-planar. OK
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 @click.option("--protocol", type=click.STRING, callback=validate_config_path_exclusive_option, help="Protocol used for calculations.")
 @click.option("--output", type=click.Path(file_okay=True, dir_okay=False), callback=validate_config_path_exclusive_option, help="Output analysis filename.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), callback=validate_config_path_exclusive_option, help="Config filename.")
-def analyze_image_planar(filename, protocol, output, config):
+# @click.option("--config", type=click.Path(exists=True, file_okay=True), callback=validate_config_path_exclusive_option, help="Config filename.")
+@click.option("--config-new", type=click.Path(exists=True, file_okay=True), help="Config filename.")
+def analyze_image_planar(filename, protocol, output, config_new):
     """Analyze field images."""
 
-    if config:
-        # Load the config file.
-        with open(config, "r", encoding = "utf-8") as configFile:
-            configJSON = json.load(configFile)
+    cfg = nel_calc.nel_aux.load_toml_file(config_new) if config_new else {}
 
-        # Output filename.
-        output = f"{configJSON["files"]["output-image-analysis"]["preffix"]}.{configJSON["files"]["output-image-analysis"]["extension"]}"
+    protocol = nel_calc.nel_aux.resolve_option(protocol, cfg, "analyze-image-planar.protocol", required=True)
+    output = nel_calc.nel_aux.resolve_option(output, cfg, "analyze-image-planar.output", required=True)
 
-        protocol = None
-        for configJSON_device in configJSON["devices"]:
-            if configJSON["devices"][configJSON_device]["type"] == "epid":
-                deviceStatus = configJSON["devices"][configJSON_device]["status"]
-                if "default" in deviceStatus:
-                    protocol = configJSON["devices"][configJSON_device]["protocol"]
-                    break
+    # if config:
+    #     # Load the config file.
+    #     with open(config, "r", encoding = "utf-8") as configFile:
+    #         configJSON = json.load(configFile)
 
-    else:
-        #Check if all the parameters are provided.
-        if protocol is None or output is None:
-            raise click.BadParameter("All parameters are required.")
+    # Output filename.
+        # output = f"{configJSON["files"]["output-image-analysis"]["preffix"]}.{configJSON["files"]["output-image-analysis"]["extension"]}"
+
+        # protocol = None
+        # for configJSON_device in configJSON["devices"]:
+        #     if configJSON["devices"][configJSON_device]["type"] == "epid":
+        #         deviceStatus = configJSON["devices"][configJSON_device]["status"]
+        #         if "default" in deviceStatus:
+        #             protocol = configJSON["devices"][configJSON_device]["protocol"]
+        #             break
+
+    # else:
+    #     #Check if all the parameters are provided.
+    #     if protocol is None or output is None:
+    #         raise click.BadParameter("All parameters are required.")
 
     # Load input files: field images
     field_analysis = pylinac.FieldAnalysis(path=filename)
@@ -358,7 +374,7 @@ def analyze_image_planar(filename, protocol, output, config):
     elif protocol == None:
         protocol_class = None
     else:
-        raise ValueError(f"Unknown protocol: {protocol}.")
+        raise click.exceptions.BadParameter(f"Unknown protocol: {protocol}.")
     
     # performing analysis
     field_analysis.analyze(protocol=protocol_class)
@@ -368,16 +384,22 @@ def analyze_image_planar(filename, protocol, output, config):
     click.echo(f"2D images analyzed.")
     sys.exit(0)
 
+# generate-calbration-report.
 @click.command()
 @click.argument("filename", type=click.Path(file_okay=True, dir_okay=False), required=True)
 @click.option("--output", type=click.Path(file_okay=True, dir_okay=False), help="Output filename.")
-@click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
-def generate_calibration_report(filename, output, config):
+@click.option("--config-new", type=click.Path(exists=True, file_okay=True), help="Config filename.")
+# @click.option("--config", type=click.Path(exists=True, file_okay=True), help="Config filename.")
+def generate_calibration_report(filename, output, config_new):
     """Generate report about calibration."""
 
+    cfg = nel_calc.nel_aux.load_toml_file(config_new) if config_new else {}
+
+    output = nel_calc.nel_aux.resolve_option(output, cfg, "generate-calibration-report.output", required=True)
+
     # Load the config file.
-    with open(config, "r", encoding = "utf-8") as configFile:
-        configJSON = json.load(configFile)
+    # with open(config, "r", encoding = "utf-8") as configFile:
+        # configJSON = json.load(configFile)
     
     # Load the input file.
     with open(filename, "r", encoding = "utf-8") as inputFile:
